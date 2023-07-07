@@ -10,9 +10,11 @@ function ctrl_c() {
   echo "CTRL-C - cleaning up"
   i=0
   while [ $i -lt $MAX_ITERATIONS ]; do 
-    "${DIR}"/gather.sh stop "${i}"
+    "${DIR}"/gather.sh stop "${i}" &
     i=$((i+1))
   done
+  echo "Sleeping for 60 seconds before shutting down"
+  sleep 60
   exit 0
 }
 

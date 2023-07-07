@@ -50,19 +50,38 @@ gather() {
     -d --rm \
     quay.io/akaris/must-gather-network-metrics:v0.4 \
     /bin/bash -c "mkdir /gather-dir/monitor; cd /gather-dir/monitor; export SS_OPTS=\"-noemitaupwS\"; bash /resources/monitor.sh -d 10"
+
+#  podman run \
+#    --name "gather-pidstat-${IDENTIFIER}" \
+#    -v "${GATHER_DIR}:/gather-dir:z" \
+#    -d --rm \
+#    --privileged \
+#    -v /proc/:/proc \
+#    --pid=host \
+#    quay.io/akaris/must-gather-network-metrics:v0.4 \
+#    /bin/bash -c "pidstat -p ALL -T ALL -I -l -r -t -u -d -w 5 > /gather-dir/pidstat.txt"
+
   podman run \
-    --name "gather-pidstat-${IDENTIFIER}" \
+    --name "gather-top-${IDENTIFIER}" \
     -v "${GATHER_DIR}:/gather-dir:z" \
     -d --rm \
     --privileged \
     -v /proc/:/proc \
     --pid=host \
     quay.io/akaris/must-gather-network-metrics:v0.4 \
-    /bin/bash -c "pidstat -p ALL -T ALL -I -l -r -t -u -d -w 5 > /gather-dir/pidstat.txt"
+    /bin/bash -c "top -b > /gather-dir/top.txt"
+
+  podman run \
+    --name "gather-sar-${IDENTIFIER}" \
+    -v "${GATHER_DIR}:/gather-dir:z" \
+    -d --rm \
+    quay.io/akaris/must-gather-network-metrics:v0.4 \
+    /bin/bash -c "sar -A 5 > /gather-dir/sar.txt"
 }
 
 stop_gather() {
-  containers="gather-monitor-${IDENTIFIER} gather-pidstat-${IDENTIFIER}"
+  # containers="gather-monitor-${IDENTIFIER} gather-pidstat-${IDENTIFIER} gather-top-${IDENTIFIER} gather-sar-${IDENTIFIER}"
+  containers="gather-monitor-${IDENTIFIER} gather-top-${IDENTIFIER} gather-sar-${IDENTIFIER}"
 
   echo "Stopping gather with identifier ${IDENTIFIER}"
   for c in ${containers}; do
