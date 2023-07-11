@@ -48,7 +48,7 @@ gather() {
     -v /proc/:/proc \
     -v "${GATHER_DIR}:/gather-dir:z" \
     -d --rm \
-    quay.io/akaris/must-gather-network-metrics:v0.4 \
+    quay.io/akaris/must-gather-network-metrics:v0.6 \
     /bin/bash -c "mkdir /gather-dir/monitor; cd /gather-dir/monitor; export SS_OPTS=\"-noemitaupwS\"; bash /resources/monitor.sh -d 10"
 
 #  podman run \
@@ -68,20 +68,30 @@ gather() {
     --privileged \
     -v /proc/:/proc \
     --pid=host \
-    quay.io/akaris/must-gather-network-metrics:v0.4 \
+    quay.io/akaris/must-gather-network-metrics:v0.6 \
     /bin/bash -c "top -b > /gather-dir/top.txt"
 
   podman run \
     --name "gather-sar-${IDENTIFIER}" \
     -v "${GATHER_DIR}:/gather-dir:z" \
     -d --rm \
-    quay.io/akaris/must-gather-network-metrics:v0.4 \
+    quay.io/akaris/must-gather-network-metrics:v0.6 \
     /bin/bash -c "sar -A 5 > /gather-dir/sar.txt"
+
+  podman run \
+    --name "gather-cgroups-${IDENTIFIER}" \
+    --privileged \
+    -v "/var/run:/var/run" \
+    -v "/sys/fs/cgroup:/sys/fs/cgroup" \
+    -v "${GATHER_DIR}:/gather-dir:z" \
+    -d --rm \
+    quay.io/akaris/must-gather-network-metrics:v0.6 \
+    /bin/bash -c "while true; do ionice -c2 -n7 nice -n19 /resources/collect-cgroup-metrics.py -d /gather-dir/cgroups -c 'memory cpuset cpu,cpuacct pids'; sleep 5; done"
 }
 
 stop_gather() {
   # containers="gather-monitor-${IDENTIFIER} gather-pidstat-${IDENTIFIER} gather-top-${IDENTIFIER} gather-sar-${IDENTIFIER}"
-  containers="gather-monitor-${IDENTIFIER} gather-top-${IDENTIFIER} gather-sar-${IDENTIFIER}"
+  containers="gather-monitor-${IDENTIFIER} gather-top-${IDENTIFIER} gather-sar-${IDENTIFIER} gather-cgroups-${IDENTIFIER}"
 
   echo "Stopping gather with identifier ${IDENTIFIER}"
   for c in ${containers}; do
